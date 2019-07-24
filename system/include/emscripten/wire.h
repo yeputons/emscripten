@@ -136,10 +136,6 @@ namespace emscripten {
         struct TypeID<T&> : TypeID<T> {
         };
 
-        template<typename T>
-        struct TypeID<const T&> : TypeID<T> {
-        };
-
         // ExecutePolicies<>
 
         template<typename... Policies>
@@ -320,10 +316,6 @@ namespace emscripten {
 
         template<typename T>
         struct BindingType<T&> : public BindingType<T> {
-        };
-
-        template<typename T>
-        struct BindingType<const T&> : public BindingType<T> {
         };
 
         template<typename T>
