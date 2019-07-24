@@ -2360,6 +2360,19 @@ int f() {
         output = run_js('a.out.js', stdout=PIPE, stderr=PIPE, full_output=True, assert_returncode=0, engine=NODE_JS)
         assert "FAIL" not in output, output
 
+  def test_embind_no_implicit_raw_pointers(self):
+    stderr = self.expect_fail([PYTHON, EMCC, '--bind', path_from_root('tests', 'other', 'test_embind_no_implicit_raw_pointers_1.cpp')])
+    self.assertContained('Implicitly binding raw pointers is illegal.', stderr)
+
+    stderr = self.expect_fail([PYTHON, EMCC, '--bind', path_from_root('tests', 'other', 'test_embind_no_implicit_raw_pointers_2.cpp')])
+    self.assertContained('Implicitly binding raw pointers is illegal.', stderr)
+
+    stderr = self.expect_fail([PYTHON, EMCC, '--bind', path_from_root('tests', 'other', 'test_embind_no_implicit_raw_pointers_3.cpp')])
+    self.assertContained('Implicitly binding raw pointers is illegal.', stderr)
+
+    stderr = self.expect_fail([PYTHON, EMCC, '--bind', path_from_root('tests', 'other', 'test_embind_no_implicit_raw_pointers_4.cpp')])
+    self.assertContained('Implicitly binding raw pointers is illegal.', stderr)
+
   @no_wasm_backend('cannot nativize a wasm object file (...yet?)')
   @no_windows('test_llvm_nativizer does not work on Windows')
   def test_llvm_nativizer(self):
