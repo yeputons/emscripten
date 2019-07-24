@@ -45,7 +45,11 @@ namespace emscripten {
         // identification.
 
         template<typename T>
+        static inline constexpr bool IsCanonicalized = !std::is_reference<T>::value && !std::is_const<T>::value && !std::is_volatile<T>::value;
+
+        template<typename T>
         struct CanonicalizedID {
+            static_assert(IsCanonicalized<T>, "T should not be a reference or cv-qualified");
             static char c;
             static constexpr TYPEID get() {
                 return &c;
@@ -56,15 +60,10 @@ namespace emscripten {
         char CanonicalizedID<T>::c;
 
         template<typename T>
-        struct Canonicalized {
-            typedef typename std::remove_cv<typename std::remove_reference<T>::type>::type type;
-        };
-
-        template<typename T>
         struct LightTypeID {
             static constexpr TYPEID get() {
-                typedef typename Canonicalized<T>::type C;
-                if(has_unbound_type_names || std::is_polymorphic<C>::value) {
+                static_assert(IsCanonicalized<T>, "T should not be a reference or cv-qualified");
+                if(has_unbound_type_names || std::is_polymorphic<T>::value) {
 #if __has_feature(cxx_rtti)
                     return &typeid(T);
 #else
@@ -72,19 +71,19 @@ namespace emscripten {
                         "Unbound type names are illegal with RTTI disabled. "
                         "Either add -DEMSCRIPTEN_HAS_UNBOUND_TYPE_NAMES=0 to or remove -fno-rtti "
                         "from the compiler arguments");
-                    static_assert(!std::is_polymorphic<C>::value,
+                    static_assert(!std::is_polymorphic<T>::value,
                         "Canonicalized<T>::type being polymorphic is illegal with RTTI disabled");
 #endif
                 }
 
-                return CanonicalizedID<C>::get();
+                return CanonicalizedID<T>::get();
             }
         };
 
         template<typename T>
         constexpr TYPEID getLightTypeID(const T& value) {
-            typedef typename Canonicalized<T>::type C;
-            if(has_unbound_type_names || std::is_polymorphic<C>::value) {
+            static_assert(IsCanonicalized<T>, "T should not be a reference or cv-qualified");
+            if(has_unbound_type_names || std::is_polymorphic<T>::value) {
 #if __has_feature(cxx_rtti)
                 return &typeid(value);
 #else
@@ -92,7 +91,7 @@ namespace emscripten {
                     "Unbound type names are illegal with RTTI disabled. "
                     "Either add -DEMSCRIPTEN_HAS_UNBOUND_TYPE_NAMES=0 to or remove -fno-rtti "
                     "from the compiler arguments");
-                static_assert(!std::is_polymorphic<C>::value,
+                static_assert(!std::is_polymorphic<T>::value,
                     "Canonicalized<T>::type being polymorphic is illegal with RTTI disabled");
 #endif
             }
@@ -127,6 +126,18 @@ namespace emscripten {
             static constexpr TYPEID get() {
                 return LightTypeID<T*>::get();
             }
+        };
+
+        template<typename T>
+        struct TypeID<const T> : TypeID<T> {
+        };
+
+        template<typename T>
+        struct TypeID<T&> : TypeID<T> {
+        };
+
+        template<typename T>
+        struct TypeID<const T&> : TypeID<T> {
         };
 
         // ExecutePolicies<>
