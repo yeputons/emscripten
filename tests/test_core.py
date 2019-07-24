@@ -6705,10 +6705,17 @@ someweirdtext
         printf("abs(-10): %d\n", Math.call<int>("abs", -10));
         printf("abs(-11): %d\n", Math["abs"](-11).as<int>());
 
+        // Const-qualification and references should not matter.
+        int x = -12;
+        const int y = -13;
+        printf("abs(%d): %d\n", x, Math.call<int>("abs", x)); // x is deducted to int&
+        printf("abs(%d): %d\n", y, Math.call<int>("abs", y)); // y is deducted to const int&
+        printf("abs(-14): %d\n", Math.call<const int>("abs", -14));
+
         return 0;
       }
     '''
-    self.do_run(src, 'abs(-10): 10\nabs(-11): 11')
+    self.do_run(src, 'abs(-10): 10\nabs(-11): 11\nabs(-12): 12\nabs(-13): 13\nabs(-14): 14\n')
 
   def test_embind_2(self):
     self.emcc_args += ['--bind', '--post-js', 'post.js']
