@@ -13,6 +13,7 @@ import filecmp
 import glob
 import itertools
 import json
+import locale
 import os
 import pipes
 import re
@@ -8589,7 +8590,6 @@ end
     if not self.is_wasm_backend(): # TODO: wasm backend main module
       self.do_other_test(os.path.join('other', 'extern_weak'), emcc_args=['-s', 'MAIN_MODULE=1', '-DLINKABLE'])
 
-  @no_windows('https://github.com/emscripten-core/emscripten/issues/9057')
   def test_js_optimizer_parse_error(self):
     # check we show a proper understandable error for JS parse problems
     create_test_file('src.cpp', r'''
@@ -8600,7 +8600,13 @@ int main() {
   });
 }
 ''')
-    stderr = self.expect_fail([PYTHON, EMCC, 'src.cpp', '-O2'])
+    # Due to https://github.com/emscripten-core/emscripten/issues/9068 we would like to get
+    # raw binary output of emcc and filter out any `\r` on Windows manually, otherwise Python
+    # will replace stray `\r` with `\n` and create a new line instead.
+    stderr = self.expect_fail([PYTHON, EMCC, 'src.cpp', '-O2'], universal_newlines=False)
+    # Now we have to manually process binary data. We use the encoding used by
+    # Popen.communicate with universal_newlines=True.
+    stderr = stderr.replace(b'\r', b'').decode(locale.getpreferredencoding(False))
     # wasm backend output doesn't have spaces in the EM_ASM function bodies
     self.assertContained(('''
 var ASM_CONSTS = [function() { var x = !<->5.; }];
@@ -8608,7 +8614,7 @@ var ASM_CONSTS = [function() { var x = !<->5.; }];
 ''', '''
 var ASM_CONSTS = [function() {var x = !<->5.;}];
                                        ^
-'''), stderr.replace('\r', ''))
+'''), stderr)
 
   def test_EM_ASM_ES6(self):
     # check we show a proper understandable error for JS parse problems
